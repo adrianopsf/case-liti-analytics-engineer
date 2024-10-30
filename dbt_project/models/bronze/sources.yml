@@ -6,3 +6,16 @@ sources:
     tables:
       - name: airbyte_raw_weighins
       
+      - name: customer
+
+      - name: customer_meal_plan
+
+      - name: customer_medicines_prescriptions
+
+      - name: customer_objectives
+
+      - name: meal_plans
+
+      - name: medicines
+
+      - name: objectives
