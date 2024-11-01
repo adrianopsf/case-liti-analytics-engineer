@@ -27,13 +27,11 @@ base_data AS (
         customer_id,
         
         /* Limpeza e normalização de gênero */
-        CASE LOWER(customer_gender)
-            WHEN 'male' THEN 'Male'
-            WHEN 'female' THEN 'Female'
-            WHEN 'other' THEN 'Other'
-            ELSE 'Not specified'
+        CASE 
+            WHEN customer_gender IS NULL THEN 'not specified' 
+            ELSE LOWER(customer_gender) 
         END AS customer_gender,
-
+        
         /* Tratamento para faixa de altura aceitável do usuário */
         CASE 
              WHEN customer_height BETWEEN 50 AND 300 THEN customer_height
@@ -46,15 +44,20 @@ base_data AS (
             ELSE NULL
         END AS customer_birth_date,
 
-        /* Padronização e categorização do canal de origem */
-        CASE origin_channel_group
-            WHEN 'other' THEN 'Outro'
-            WHEN 'projeto_video' THEN 'Projeto Video'
-            ELSE origin_channel_group
+        /* Padronização do canal de origem */
+        
+        CASE 
+            WHEN origin_channel_group IS NULL THEN 'not specified' 
+            ELSE LOWER(origin_channel_group) 
         END AS origin_channel_group,
-
-        /* Normalização e tratamento do plano */
-        COALESCE(customer_plan, 'Sem Plano') AS customer_plan,
+        
+        /* Padronização do plano do usuário */
+        CASE 
+            WHEN customer_plan IS NULL THEN 'not specified' 
+            ELSE LOWER(customer_plan) 
+        END AS customer_plan,
+        
+        
         COALESCE(active_plan, 'false') AS active_plan,
         is_active,
         is_active_paid,
@@ -92,14 +95,14 @@ base_data AS (
 
         /* Indicador de churn */
         CASE 
-            WHEN churn_date IS NOT NULL THEN 'Churn'
-            ELSE 'Ativo'
+            WHEN churn_date IS NOT NULL THEN 'churn'
+            ELSE 'ativo'
         END AS churn_status,
 
         /* Campos de relacionamento tratados como nulos onde apropriado */
-        COALESCE(customer_doctor, 'Desconhecido') AS customer_doctor,
-        COALESCE(customer_nutritionist, 'Desconhecido') AS customer_nutritionist,
-        COALESCE(customer_besci, 'Desconhecido') AS customer_besci
+        COALESCE(customer_doctor, 'desconhecido') AS customer_doctor,
+        COALESCE(customer_nutritionist, 'desconhecido') AS customer_nutritionist,
+        COALESCE(customer_besci, 'desconhecido') AS customer_besci
 
     FROM casted_data
 ),
@@ -113,6 +116,25 @@ deduped_data AS (
 )
 
 -- Seleção dos dados finais, mantendo apenas uma linha por CustomerId
-SELECT *
+SELECT 
+    customer_id,
+    customer_gender,
+    customer_height,
+    customer_birth_date,
+    origin_channel_group,
+    customer_plan,
+    active_plan,
+    is_active,
+    is_active_paid,
+    first_start_date,
+    acquired_date,
+    first_payment_date,
+    last_charge_paid_date,
+    churn_date,
+    customer_created_at,
+    churn_status,
+    customer_doctor,
+    customer_nutritionist,
+    customer_besci
 FROM deduped_data
 WHERE row_num = 1

@@ -16,14 +16,12 @@ clean-targets:
 
 # Configuração dos modelos para evitar o prefixo no schema
 models:
-  bronze:
-    +schema: bronze  # Define o schema 'bronze' diretamente
-    +materialized: table
-  
-  silver:
-    +schema: silver  # Define o schema 'silver' diretamente
-    +materialized: table
-  
-  gold:
-    +schema: gold  # Define o schema 'gold' diretamente
-    +materialized: table
+  dbt_project:
+    bronze:
+      +materialized: table
+    
+    silver:
+      +materialized: table
+    
+    gold:
+      +materialized: table
