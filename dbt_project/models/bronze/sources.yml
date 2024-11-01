@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: bronze  # Replace with your actual database name
-    schema: public  # Replace with your schema if different
+    schema: bronze  # Replace with your schema if different
     tables:
       - name: airbyte_raw_weighins
       
@@ -19,3 +19,4 @@ sources:
       - name: medicines
 
       - name: objectives
+
