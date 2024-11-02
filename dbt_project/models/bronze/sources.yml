@@ -1,8 +1,8 @@
 version: 2
 
 sources:
-  - name: bronze  # Replace with your actual database name
-    schema: bronze  # Replace with your schema if different
+  - name: bronze  
+    schema: bronze
     tables:
       - name: airbyte_raw_weighins
       

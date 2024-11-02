@@ -2,14 +2,21 @@ version: 2
 
 sources:
   - name: bronze
-    schema: bronze  # Schema para a camada bronze
+    schema: bronze
     tables:
       - name: bronze_customer
+
       - name: bronze_weighins
+
       - name: bronze_customer_meal_plan
+
       - name: bronze_customer_medicines_prescriptions
+
       - name: bronze_customer_objectives
+
       - name: bronze_meal_plans
+
       - name: bronze_medicines
+      
       - name: bronze_objectives
 

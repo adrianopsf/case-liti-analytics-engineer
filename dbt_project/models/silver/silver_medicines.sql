@@ -23,6 +23,7 @@ base_data AS (
         medicine_id,
         name,
         tipo,
+        label,
         /*Tratamento dos campos de dosagem */
         CASE 
             WHEN dosages_0_ = 'N/A' OR dosages_0_ = '' THEN NULL ELSE dosages_0_ 

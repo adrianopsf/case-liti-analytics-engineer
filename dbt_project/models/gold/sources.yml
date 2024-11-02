@@ -1,0 +1,21 @@
+version: 2
+
+sources:
+  - name: silver
+    schema: silver
+    tables:
+      - name: silver_customer
+
+      - name: silver_weighins
+
+      - name: silver_customer_meal_plan
+
+      - name: silver_customer_medicines_prescriptions
+
+      - name: silver_customer_objectives
+
+      - name: silver_meal_plans
+
+      - name: silver_medicines
+      
+      - name: silver_objectives

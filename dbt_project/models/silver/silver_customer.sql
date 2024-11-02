@@ -78,6 +78,9 @@ base_data AS (
             ELSE 'ativo'
         END AS churn_status,
 
+        /*Cálculo de idade */
+        EXTRACT(YEAR FROM AGE(CURRENT_DATE, customer_birth_date)) AS age,
+
         /* Campos de relacionamento tratados como nulos onde apropriado e falso para booleano em caso de nulo */
         COALESCE(customer_doctor, 'desconhecido') AS customer_doctor,
         COALESCE(customer_nutritionist, 'desconhecido') AS customer_nutritionist,
@@ -102,6 +105,7 @@ SELECT
     customer_gender,
     customer_height,
     customer_birth_date,
+    age,
     origin_channel_group,
     customer_plan,
     active_plan,
