@@ -21,22 +21,9 @@ base_data AS (
         customer_id,
         staff_id,
         meal_plan_id,
-        
-        /* Assegurar que as datas não sejam datas futuras */
-        CASE 
-            WHEN created_at <= CURRENT_DATE THEN created_at
-            ELSE NULL
-        END AS created_at,
-
-        CASE 
-            WHEN start_date <= CURRENT_DATE THEN start_date
-            ELSE NULL
-        END AS start_date,
-
-        CASE 
-            WHEN end_date <= CURRENT_DATE THEN end_date
-            ELSE NULL
-        END AS end_date,
+        created_at,
+        start_date,
+        end_date,
 
         /* Garantir os valores booleanos */
         COALESCE(restrictions_vegan, FALSE) AS restrictions_vegan,
@@ -46,9 +33,15 @@ base_data AS (
         COALESCE(restrictions_high_fod_maps, FALSE) AS restrictions_high_fod_maps
 
     FROM casted_data
+    WHERE customer_meal_plan_id IS NOT NULL
+      AND customer_id IS NOT NULL
+      AND created_at <= CURRENT_DATE
+      AND (start_date IS NULL OR start_date <= CURRENT_DATE)
+      AND (end_date IS NULL OR end_date <= CURRENT_DATE)
 )
 
 -- Seleção dos dados finais
 SELECT 
    *
 FROM base_data
+

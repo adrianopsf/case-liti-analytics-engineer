@@ -44,6 +44,7 @@ WITH parsed_json AS (
         (_airbyte_data->>'allBodykg')::FLOAT AS all_body_kg,
         (_airbyte_data->>'bodyScore')::INT AS body_score,
         (_airbyte_data->'createdAt'->>'$date')::TIMESTAMP AS created_at,
+        (_airbyte_data->'deletedAt'->>'$date')::TIMESTAMP AS deleted_at,
         (_airbyte_data->>'electrode')::INT AS electrode,
         (_airbyte_data->>'leftArmkg')::FLOAT AS left_arm_kg,
         (_airbyte_data->>'leftLegkg')::FLOAT AS left_leg_kg,

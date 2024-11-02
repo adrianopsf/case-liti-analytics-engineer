@@ -11,54 +11,33 @@ WITH casted_data AS (
         CAST(NULLIF("churnDate", '') AS DATE) AS churn_date,
         CAST(NULLIF("customerCreatedAt", '') AS TIMESTAMP) AS customer_created_at,
         CAST(NULLIF("customerHeight", '') AS FLOAT) AS customer_height,
-        CAST("activePlan" AS VARCHAR) AS active_plan,
-        CAST("customerPlan" AS VARCHAR) AS customer_plan,
-        CAST("customerGender" AS VARCHAR) AS customer_gender,
-        CAST("originChannelGroup" AS VARCHAR) AS origin_channel_group,
-        CAST("customerDoctor" AS VARCHAR) AS customer_doctor,
+        COALESCE("activePlan", 'false') AS active_plan,
+        COALESCE(LOWER("customerPlan"), 'not specified') AS customer_plan,
+        COALESCE(LOWER("customerGender"), 'not specified') AS customer_gender,
+        COALESCE(LOWER("originChannelGroup"), 'not specified') AS origin_channel_group,
+        CAST("customerDoctor"AS VARCHAR) AS customer_doctor,
         CAST("customerNutritionist" AS VARCHAR) AS customer_nutritionist,
         CAST("customerBesci" AS VARCHAR) AS customer_besci,
-        CAST("customerInOnboarding" AS VARCHAR) AS customer_in_onboarding      
+        CAST(NULLIF("customerInOnboarding", '') AS BOOLEAN) AS customer_in_onboarding   
     FROM {{ source('bronze', 'bronze_customer') }}
 ),
+
 
 base_data AS (
     SELECT 
         customer_id,
+        customer_gender,
+        customer_height,
         
-        /* Limpeza e normalização de gênero */
-        CASE 
-            WHEN customer_gender IS NULL THEN 'not specified' 
-            ELSE LOWER(customer_gender) 
-        END AS customer_gender,
-        
-        /* Tratamento para faixa de altura aceitável do usuário */
-        CASE 
-             WHEN customer_height BETWEEN 50 AND 300 THEN customer_height
-             ELSE NULL 
-        END AS customer_height,
-       
         /* Tratamento para a data de aniversário não ser data futura */
         CASE 
-            WHEN CAST(customer_birth_date AS DATE) <= CURRENT_DATE THEN CAST(customer_birth_date AS DATE)
+            WHEN customer_birth_date <= CURRENT_DATE THEN customer_birth_date
             ELSE NULL
         END AS customer_birth_date,
 
-        /* Padronização do canal de origem */
-        
-        CASE 
-            WHEN origin_channel_group IS NULL THEN 'not specified' 
-            ELSE LOWER(origin_channel_group) 
-        END AS origin_channel_group,
-        
-        /* Padronização do plano do usuário */
-        CASE 
-            WHEN customer_plan IS NULL THEN 'not specified' 
-            ELSE LOWER(customer_plan) 
-        END AS customer_plan,
-        
-        
-        COALESCE(active_plan, 'false') AS active_plan,
+        origin_channel_group,
+        customer_plan,
+        active_plan,
         is_active,
         is_active_paid,
 
@@ -99,10 +78,11 @@ base_data AS (
             ELSE 'ativo'
         END AS churn_status,
 
-        /* Campos de relacionamento tratados como nulos onde apropriado */
+        /* Campos de relacionamento tratados como nulos onde apropriado e falso para booleano em caso de nulo */
         COALESCE(customer_doctor, 'desconhecido') AS customer_doctor,
         COALESCE(customer_nutritionist, 'desconhecido') AS customer_nutritionist,
-        COALESCE(customer_besci, 'desconhecido') AS customer_besci
+        COALESCE(customer_besci, 'desconhecido') AS customer_besci,
+        COALESCE(customer_in_onboarding, FALSE) AS customer_in_onboarding
 
     FROM casted_data
 ),
@@ -113,6 +93,7 @@ deduped_data AS (
         *,
         ROW_NUMBER() OVER(PARTITION BY customer_id ORDER BY customer_created_at DESC) AS row_num
     FROM base_data
+    WHERE customer_id IS NOT NULL
 )
 
 -- Seleção dos dados finais, mantendo apenas uma linha por CustomerId
@@ -135,6 +116,7 @@ SELECT
     churn_status,
     customer_doctor,
     customer_nutritionist,
-    customer_besci
+    customer_besci,
+    customer_in_onboarding
 FROM deduped_data
 WHERE row_num = 1
