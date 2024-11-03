@@ -1,6 +1,6 @@
 WITH weighin_base AS (
     SELECT
-        owner_id as customer_id,
+        owner_id AS customer_id,
         created_at AS weighin_date,
         weight_kg,
         skeletal_muscle_kg,
@@ -10,21 +10,68 @@ WITH weighin_base AS (
     WHERE created_at IS NOT NULL
 ),
 
-
--- Calcula o Z-score para identificar os outliers em pesagens e peso muscular
-zscore_calculations AS (
+-- Calcula estatísticas semanais para identificar comportamentos incomuns por semana
+weekly_stats AS (
     SELECT
-        *,
-        (weight_kg - AVG(weight_kg) OVER (PARTITION BY customer_id)) / NULLIF(STDDEV(weight_kg) OVER (PARTITION BY customer_id), 0) AS weight_zscore,
-        (skeletal_muscle_kg - AVG(skeletal_muscle_kg) OVER (PARTITION BY customer_id)) / NULLIF(STDDEV(skeletal_muscle_kg) OVER (PARTITION BY customer_id), 0) AS skeletal_muscle_zscore
+        customer_id,
+        DATE_TRUNC('week', weighin_date) AS week_start_date,
+        AVG(weight_kg) AS weekly_avg_weight,
+        STDDEV(weight_kg) AS weekly_stddev_weight,
+        COUNT(*) AS num_weighins
     FROM weighin_base
+    GROUP BY customer_id, DATE_TRUNC('week', weighin_date)
 ),
 
--- Remove outliers
+weighins_with_weekly_stats AS (
+    SELECT
+        w.customer_id,
+        w.weighin_date,
+        w.weight_kg,
+        w.skeletal_muscle_kg,
+        w.body_fat_percent,
+        w.weighin_number,
+        ws.week_start_date,
+        ws.weekly_avg_weight,
+        ws.weekly_stddev_weight
+    FROM weighin_base w
+    JOIN weekly_stats ws
+    ON w.customer_id = ws.customer_id AND DATE_TRUNC('week', w.weighin_date) = ws.week_start_date
+),
+
+-- Remove outliers semanais que fogem muito da média semanal
+filtered_weekly_data AS (
+    SELECT *
+    FROM weighins_with_weekly_stats
+    WHERE ABS(weight_kg - weekly_avg_weight) <= 1.5 * weekly_stddev_weight
+),
+
+-- Calcula estatísticas gerais usando IQR para identificação de outliers menos sensível a valores extremos
+quartiles AS (
+    SELECT
+        customer_id,
+        PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY weight_kg) AS q1,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY weight_kg) AS q3
+    FROM filtered_weekly_data
+    GROUP BY customer_id
+),
+
+iqr_calculations AS (
+    SELECT
+        fwd.*,
+        q.q1,
+        q.q3,
+        (q.q3 - q.q1) AS iqr,
+        q.q1 - 1.0 * (q.q3 - q.q1) AS lower_bound,
+        q.q3 + 1.0 * (q.q3 - q.q1) AS upper_bound
+    FROM filtered_weekly_data fwd
+    JOIN quartiles q ON fwd.customer_id = q.customer_id
+),
+
+-- Filtra os dados que estão dentro dos limites calculados pelo IQR
 filtered_data AS (
     SELECT *
-    FROM zscore_calculations
-    WHERE ABS(weight_zscore) < 3 AND ABS(skeletal_muscle_zscore) < 3
+    FROM iqr_calculations
+    WHERE weight_kg >= lower_bound AND weight_kg <= upper_bound
 ),
 
 weight_changes AS (
@@ -45,8 +92,6 @@ weight_changes AS (
     FROM filtered_data
 ),
 
-
-
 fact_weighins AS (
     SELECT
         w.customer_id,
@@ -61,5 +106,5 @@ fact_weighins AS (
     FROM weight_changes w
 )
 
-
-SELECT * FROM fact_weighins
+SELECT *
+FROM fact_weighins
